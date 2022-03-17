@@ -23,7 +23,7 @@ systemd-units = { unit-name = "pyrsia", unit-scripts = "installers/debian/" }
 signed = {path="src/signed"}
 signed_struct = { path = "src/signed_struct" }
 
-anyhow = "1.0.51"
+anyhow = "1.0.56"
 async-trait = "0.1.52"
 base64 = "0.13.0"
 bincode = "1.3.3"

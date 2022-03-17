@@ -11,7 +11,7 @@ proc-macro = true
 [dependencies]
 signed = {path="../signed"}
 
-anyhow = "1.0.51"
+anyhow = "1.0.56"
 base64 = "0.13.0"
 quote = "1.0"
 proc-macro2 = "1.0"
