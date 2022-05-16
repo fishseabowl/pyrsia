@@ -19,7 +19,7 @@ jobs:
           fetch-depth: 0
       - name: Get changed rust files
         id: changed-rust-files
-        uses: tj-actions/changed-files@v19
+        uses: tj-actions/changed-files@v20
         with:
           files: |
             **/*.rs
