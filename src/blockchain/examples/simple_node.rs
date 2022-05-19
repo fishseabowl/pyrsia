@@ -49,7 +49,7 @@ const INITIAL_DELAY_MS: u128 = 5000;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    pretty_env_logger::init();
+    pretty_env_logger::try_init_timed().unwrap();
 
     let args = BlockchainNodeArgs::parse();
 
@@ -71,18 +71,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let (authority_to_verifier, mut authority_from_network) = futures_mpsc::unbounded();
     let (close_verifier, mut exit) = oneshot::channel();
-    tokio::spawn(async move {
-        loop {
-            futures::select! {
-                maybe_auth = authority_from_network.next() => {
-                    if let Some((_node_ix, _public_key)) = maybe_auth {
-                        // record_authority(node_ix, public_key);
-                    }
-                }
-               _ = &mut exit  => break,
-            }
-        }
-    });
+    //   tokio::spawn(async move {
+    //       loop {
+    //           futures::select! {
+    //               maybe_auth = authority_from_network.next() => {
+    //                   if let Some((_node_ix, _public_key)) = maybe_auth {
+    //                       // record_authority(node_ix, public_key);
+    //                   }
+    //              }
+    //              _ = &mut exit  => break,
+    //          }
+    //      }
+    //  });
 
     let (
         network,
@@ -94,6 +94,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ) = Network::new(
         my_node_ix,
         id_keys.clone(),
+        Default::default(),
         Default::default(), // peers_by_index,
         authority_to_verifier,
     )

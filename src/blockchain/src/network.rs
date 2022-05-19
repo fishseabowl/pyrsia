@@ -30,6 +30,8 @@ use futures::{
     Future, FutureExt, StreamExt,
 };
 use libp2p::core::identity::ed25519::PublicKey;
+use libp2p::swarm::NetworkBehaviour;
+use libp2p::Multiaddr;
 use libp2p::{
     core::upgrade,
     identity,
@@ -44,6 +46,7 @@ use libp2p::{
     NetworkBehaviour, PeerId, Swarm, Transport,
 };
 use log::{debug, info, trace, warn};
+use std::fmt::Debug;
 use std::{collections::HashMap, error::Error, io, iter, time::Duration};
 
 #[derive(Clone)]
@@ -150,6 +153,11 @@ impl RequestResponseCodec for GenericCodec {
     }
 }
 
+#[derive(Clone, Encode, Decode)]
+pub struct PeerById {
+    node_ix: Option<NodeIndex>,
+}
+
 #[derive(NetworkBehaviour)]
 #[behaviour(event_process = true)]
 pub struct Behaviour {
@@ -157,7 +165,9 @@ pub struct Behaviour {
     rq_rp: RequestResponse<GenericCodec>,
 
     #[behaviour(ignore)]
-    peers: Vec<PeerId>,
+    sender: tokio::sync::mpsc::Sender<PeerId>,
+    #[behaviour(ignore)]
+    peers: HashMap<PeerId, PeerById>,
     #[behaviour(ignore)]
     peer_by_index: HashMap<NodeIndex, PeerId>,
     #[behaviour(ignore)]
@@ -186,7 +196,7 @@ impl Behaviour {
                 }
             }
             Everyone => {
-                for peer_id in self.peers.iter() {
+                for (peer_id, _) in self.peers.iter() {
                     self.rq_rp.send_request(peer_id, message.clone());
                 }
             }
@@ -196,7 +206,7 @@ impl Behaviour {
     fn send_block_message(&mut self, block: Block) {
         info!("✈️ Sending block {}", block.header.ordinal);
         let message = Message::Block(block).encode();
-        for peer_id in self.peers.iter() {
+        for (peer_id, _) in self.peers.iter() {
             self.rq_rp.send_request(peer_id, message.clone());
         }
     }
@@ -204,20 +214,42 @@ impl Behaviour {
 
 impl NetworkBehaviourEventProcess<MdnsEvent> for Behaviour {
     fn inject_event(&mut self, event: MdnsEvent) {
-        if let MdnsEvent::Discovered(list) = event {
-            trace!("Processing discovery event with new list {:?}", list);
-            let auth_message = Message::Auth(self.node_ix).encode();
-            let key_message = Message::PublicKey(self.node_ix, self.public_key.clone()).encode();
-            for (peer, _) in list {
-                if self.peers.iter().any(|p| *p == peer) {
-                    continue;
-                }
-                self.peers.push(peer);
-                trace!("Sending authentication message to {:?}", peer);
-                self.rq_rp.send_request(&peer, auth_message.clone());
+        match event {
+            MdnsEvent::Discovered(list) => {
+                info!("Processing discovery event with new list {:?}", list);
+                //  let auth_message = Message::Auth(self.node_ix).encode();
+                //  let key_message =
+                //      Message::PublicKey(self.node_ix, self.public_key.clone()).encode();
+                for (peer, _) in list {
+                    println!("Befroe insert list {:?}", peer);
+                    if !self.peers.contains_key(&peer) {
+                        match self.sender.try_send(peer) {
+                            Ok(_) => {
+                                //                  let addresses = self.addresses_of_peer(&peer);
+                                self.peers.insert(peer, PeerById { node_ix: None });
+                                info!("Sending authentication message to {:?}", peer);
+                                //        self.rq_rp.send_request(&peer, auth_message.clone());
 
-                trace!("Sending public key message to {:?}", peer);
-                self.rq_rp.send_request(&peer, key_message.clone());
+                                info!("Sending public key message to {:?}", peer);
+                                //        self.rq_rp.send_request(&peer, key_message.clone());
+                            }
+                            Err(err) => eprintln!("Failed to send. Erorr{:?}", err),
+                        }
+
+                        //               if self.peers.iter().any(|p| *p == peer) {
+                        //                   continue;
+                        //               }
+                    }
+                }
+            }
+
+            MdnsEvent::Expired(list) => {
+                for (peer_id, address) in list {
+                    if self.peers.contains_key(&peer_id) && !self.mdns.has_node(&peer_id) {
+                        println!("Expired Peer | {peer_id:?} | {address:?}");
+                        self.peers.remove(&peer_id);
+                    }
+                }
             }
         }
     }
@@ -236,10 +268,7 @@ impl NetworkBehaviourEventProcess<RequestResponseEvent<Request, Response>> for B
                     request,
                     channel: _,
                 } => {
-                    if !self.peers.iter().any(|p| *p == peer_id) {
-                        info!("An unknown {:?} has sent us a message!", peer_id);
-                        self.peers.push(peer_id);
-
+                    if !self.peers.iter().any(|(p, _)| *p == peer_id) {
                         trace!("Sending authentication message to {:?}", peer_id);
                         let auth_message = Message::Auth(self.node_ix).encode();
                         self.rq_rp.send_request(&peer_id, auth_message);
@@ -343,6 +372,7 @@ impl Network {
     pub async fn new(
         node_ix: NodeIndex,
         key_pair: identity::ed25519::Keypair,
+        peers: HashMap<PeerId, PeerById>,
         peer_by_index: HashMap<NodeIndex, PeerId>,
         new_authority_tx: UnboundedSender<(NodeIndex, PublicKey)>,
     ) -> Result<
@@ -361,25 +391,17 @@ impl Network {
         let local_peer_id = PeerId::from(local_key.public());
         info!("Local peer id: {:?}", local_peer_id);
 
-        // Create a keypair for authenticated encryption of the transport.
-        let noise_keys = noise::Keypair::<noise::X25519Spec>::new()
-            .into_authentic(&local_key)
-            .expect("Signing libp2p-noise static DH keypair failed.");
-
         // Create a tokio-based TCP transport use noise for authenticated
         // encryption and Mplex for multiplexing of substreams on a TCP stream.
-        let transport = TokioTcpConfig::new()
-            .nodelay(true)
-            .upgrade(upgrade::Version::V1)
-            .authenticate(noise::NoiseConfig::xx(noise_keys).into_authenticated())
-            .multiplex(mplex::MplexConfig::new())
-            .boxed();
+        let transport = libp2p::tokio_development_transport(local_key.clone())?;
 
         let (msg_to_manager_tx, msg_to_manager_rx) = mpsc::unbounded();
         let (msg_for_store, msg_from_manager) = mpsc::unbounded();
         let (msg_for_network, msg_from_store) = mpsc::unbounded();
         let (block_to_data_io_tx, block_to_data_io_rx) = mpsc::unbounded();
         let (block_from_data_io_tx, block_from_data_io_rx) = mpsc::unbounded();
+        let (sender, mut receiver) =
+            tokio::sync::mpsc::channel::<PeerId>(std::mem::size_of::<PeerId>());
         let mut swarm = {
             let mut rr_cfg = RequestResponseConfig::default();
             rr_cfg.set_connection_keep_alive(Duration::from_secs(10));
@@ -398,7 +420,8 @@ impl Network {
             let behaviour = Behaviour {
                 rq_rp,
                 mdns,
-                peers: vec![],
+                sender,
+                peers,
                 peer_by_index,
                 consensus_tx: msg_for_store,
                 block_tx: block_to_data_io_tx,
