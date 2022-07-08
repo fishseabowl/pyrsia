@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-aleph-bft = "0.8.4"
+aleph-bft = "0.15.0"
 anyhow = "1.0.58"
 async-trait = "0.1.56"
 bincode = "1.3.3"
