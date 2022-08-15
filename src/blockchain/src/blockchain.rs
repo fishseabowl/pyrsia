@@ -97,6 +97,10 @@ impl Blockchain {
         self
     }
 
+    pub fn last_block(&self) -> Option<Block> {
+        self.chain.last_block()
+    }
+
     pub async fn notify_payload_event(&mut self, payload: &Vec<u8>) -> &mut Self {
         self.payload_observers
             .iter_mut()
@@ -108,7 +112,7 @@ impl Blockchain {
     pub async fn add_block(
         &mut self,
         payload: Vec<u8>,
-        local_key: identity::Keypair,
+        local_key: &identity::Keypair,
     ) -> anyhow::Result<()> {
         let submitter = Address::from(local_key.public());
         let ed25519_key = match local_key {
@@ -281,7 +285,7 @@ mod tests {
         let data = "Hello First Transaction";
 
         let result = blockchain
-            .add_block(data.as_bytes().to_vec(), keypair)
+            .add_block(data.as_bytes().to_vec(), &keypair)
             .await;
         assert_eq!(result.is_ok(), true);
         assert_eq!(

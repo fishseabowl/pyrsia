@@ -20,10 +20,10 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
 
-use super::header::{Address, Header};
-use super::transaction::Transaction;
 use crate::crypto::hash_algorithm::HashDigest;
 use crate::signature::Signature;
+use crate::structures::header::{Address, Header};
+use crate::structures::transaction::Transaction;
 
 pub type BlockSignature = Signature;
 
