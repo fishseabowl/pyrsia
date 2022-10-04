@@ -14,7 +14,9 @@
    limitations under the License.
 */
 
-use super::{network::NetworkData, structures::block::Block, structures::header::Ordinal};
+use crate::NetworkData;
+
+use super::{structures::block::Block, structures::header::Ordinal};
 use async_trait::async_trait;
 use futures::channel::{
     mpsc,

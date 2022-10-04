@@ -19,17 +19,16 @@ pub mod blockchain;
 pub mod crypto;
 pub mod error;
 pub mod identities;
-pub mod network;
 pub mod providers;
 pub mod signature;
 pub mod structures;
 
-use crate::network::NetworkData;
 use crate::providers::DataStore;
 use crate::structures::block::Block;
 use crate::structures::header::Ordinal;
 
 pub use aleph_bft::{default_config, run_session, NodeIndex};
+use crypto::hash_algorithm::HashDigest;
 use futures::{
     channel::{
         mpsc::{UnboundedReceiver, UnboundedSender},
@@ -39,11 +38,14 @@ use futures::{
 };
 use futures_timer::Delay;
 use log::{debug, info, trace};
+use signature::{MultiSignature, Signature};
 use std::sync::Mutex;
 use std::{
     sync::Arc,
     time::{self, Duration},
 };
+
+pub type NetworkData = aleph_bft::NetworkData<HashDigest, Block, Signature, MultiSignature>;
 
 pub type BlockPlan = Arc<dyn Fn(Ordinal) -> NodeIndex + Sync + Send + 'static>;
 
