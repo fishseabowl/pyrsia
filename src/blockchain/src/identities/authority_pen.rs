@@ -15,7 +15,7 @@
 */
 
 use aleph_bft::NodeIndex;
-use libp2p::core::identity::ed25519::{Keypair, PublicKey};
+use libp2p::identity::ed25519::{Keypair, PublicKey};
 
 use super::signature::Signature;
 
@@ -29,12 +29,15 @@ impl AuthorityPen {
     pub fn new(index: NodeIndex, keypair: Keypair) -> Self {
         Self { index, keypair }
     }
+
     pub fn index(&self) -> NodeIndex {
         self.index
     }
+
     pub fn public(&self) -> PublicKey {
         self.keypair.public()
     }
+
     pub fn sign(&self, msg: &[u8]) -> Signature {
         Signature::new(msg, &self.keypair)
     }

@@ -14,8 +14,8 @@
    limitations under the License.
 */
 
-use codec::{Decode, Encode};
 use multihash::{Code, Multihash, MultihashDigest};
+use parity_scale_codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
 #[derive(

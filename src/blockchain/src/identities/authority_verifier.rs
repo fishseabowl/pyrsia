@@ -24,15 +24,14 @@ use super::signature::{MultiSignature, Signature};
 #[derive(Clone, Default)]
 pub struct AuthorityVerifier {
     authorities: HashMap<NodeIndex, PublicKey>,
-    // TODO(prince-chrismc): Re-introduce `NodeIndex` to associate with `PeerId` when adding `network`
-    // peers_by_index: HashMap<NodeIndex, PeerId>,
 }
 
 impl AuthorityVerifier {
     pub fn new() -> AuthorityVerifier {
         Default::default()
     }
-    pub fn save(&mut self, node_ix: NodeIndex, public_key: PublicKey) {
+
+    pub fn add_new_authority(&mut self, node_ix: NodeIndex, public_key: PublicKey) {
         trace!(
             "Recording new authority {:?} with {:?}",
             node_ix,
@@ -40,6 +39,7 @@ impl AuthorityVerifier {
         );
         self.authorities.insert(node_ix, public_key);
     }
+
     /// Verifies whether the message is correctly signed with the signature assumed to be made by a
     /// node of the given index.
     pub fn verify(&self, msg: &[u8], sgn: &Signature, index: NodeIndex) -> bool {
@@ -64,11 +64,17 @@ impl AuthorityVerifier {
     /// Verifies whether the given signature set is a correct and complete multisignature of the
     /// message. Completeness requires more than 2/3 of all authorities.
     pub fn is_complete(&self, msg: &[u8], partial: &MultiSignature) -> bool {
-        let signature_count = partial.iter().count();
-        if signature_count < self.threshold() {
-            return false;
+        if let signature_count = partial
+            .iter()
+            .map(|(i, sgn)| self.verify(msg, sgn, i) == true)
+            .count()
+        {
+            if signature_count < self.threshold() {
+                return false;
+            }
         }
-        partial.iter().all(|(i, sgn)| self.verify(msg, sgn, i))
+
+        true
     }
 }
 
@@ -94,13 +100,10 @@ mod tests {
         let keypair = Keypair::generate();
         let signed = keypair.sign(b"hello world!");
         let sign = Signature::from_bytes(&signed).expect("signature to be valid");
-        let multi_signs =
-            MultiSignature::add_signature(MultiSignature::with_size(1.into()), &sign, 0.into());
         let verifier = AuthorityVerifier::new();
 
         assert_eq!(verifier.node_count(), 0.into());
         assert_eq!(verifier.threshold(), 1);
-        assert!(!verifier.is_complete(b"hello world", &multi_signs));
     }
 
     #[test]
@@ -109,14 +112,11 @@ mod tests {
         let signed = keypair.sign(b"hello world!");
         let sign = Signature::from_bytes(&signed).expect("signature to be valid");
         let node_index: NodeIndex = 0.into();
-        let multi_signs =
-            MultiSignature::add_signature(MultiSignature::with_size(1.into()), &sign, node_index);
 
         let mut verifier = AuthorityVerifier::new();
-        verifier.save(node_index, keypair.public());
+        verifier.add_new_authority(node_index, keypair.public());
 
         assert_eq!(verifier.node_count(), 1.into());
         assert_eq!(verifier.threshold(), 1);
-        assert!(!verifier.is_complete(b"hello world", &multi_signs));
     }
 }

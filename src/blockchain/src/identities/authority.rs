@@ -14,42 +14,48 @@
    limitations under the License.
 */
 
-use aleph_bft::{NodeCount, NodeIndex, PartialMultisignature};
+use aleph_bft::{NodeCount, NodeIndex};
 use async_trait::async_trait;
-use libp2p::core::identity::ed25519::PublicKey;
+use libp2p::identity::ed25519::PublicKey;
 use log::trace;
 
 use super::authority_pen::AuthorityPen;
 use super::authority_verifier::AuthorityVerifier;
-use super::signature::{MultiSignature, Signature};
+use super::signature::Signature;
 
 #[derive(Clone)]
-pub struct KeyBox {
+pub struct Authority {
+    count: NodeCount,
     authority_pen: AuthorityPen,
     authority_verifier: AuthorityVerifier,
 }
 
-impl KeyBox {
+impl Authority {
     pub fn new(authority_pen: AuthorityPen, authority_verifier: AuthorityVerifier) -> Self {
         let mut kb = Self {
+            count: authority_verifier.node_count(),
             authority_pen,
             authority_verifier,
         };
         // Record the pen as a known authority -- always trust yourself
-        kb.record_authority(kb.authority_pen.index(), kb.authority_pen.public());
+        kb.add_new_authority(kb.authority_pen.index(), kb.authority_pen.public());
         kb
     }
-    pub fn record_authority(&mut self, node_index: NodeIndex, public_key: PublicKey) {
-        self.authority_verifier.save(node_index, public_key);
+
+    pub fn add_new_authority(&mut self, node_index: NodeIndex, public_key: PublicKey) {
+        self.authority_verifier
+            .add_new_authority(node_index, public_key);
+
+        self.count = self.authority_verifier.node_count();
     }
 }
 
 #[async_trait]
-impl aleph_bft::KeyBox for KeyBox {
+impl aleph_bft::Keychain for Authority {
     type Signature = Signature;
 
     fn node_count(&self) -> NodeCount {
-        self.authority_verifier.node_count()
+        self.count
     }
 
     async fn sign(&self, msg: &[u8]) -> Self::Signature {
@@ -67,26 +73,7 @@ impl aleph_bft::KeyBox for KeyBox {
     }
 }
 
-impl aleph_bft::MultiKeychain for KeyBox {
-    type PartialMultisignature = MultiSignature;
-
-    fn from_signature(
-        &self,
-        signature: &Signature,
-        index: NodeIndex,
-    ) -> Self::PartialMultisignature {
-        MultiSignature::add_signature(
-            MultiSignature::with_size(self.authority_verifier.node_count()),
-            signature,
-            index,
-        )
-    }
-    fn is_complete(&self, msg: &[u8], partial: &Self::PartialMultisignature) -> bool {
-        self.authority_verifier.is_complete(msg, partial)
-    }
-}
-
-impl aleph_bft::Index for KeyBox {
+impl aleph_bft::Index for Authority {
     fn index(&self) -> NodeIndex {
         self.authority_pen.index()
     }
@@ -96,17 +83,17 @@ impl aleph_bft::Index for KeyBox {
 #[cfg(not(tarpaulin_include))]
 mod tests {
     use super::*;
-    use aleph_bft::KeyBox as AlephKeyBox;
+    use aleph_bft::Keychain;
     use libp2p::core::identity::ed25519::Keypair;
 
     #[tokio::test]
     async fn test_key_box_self_signed() {
-        let key_box = KeyBox::new(
+        let authority = Authority::new(
             AuthorityPen::new(0.into(), Keypair::generate()),
             AuthorityVerifier::new(),
         );
-        let sign: Signature = key_box.sign(b"hello world!").await;
+        let sign: Signature = authority.sign(b"hello world!").await;
 
-        assert!(!key_box.verify(b"hello world", &sign, 0.into()));
+        assert!(!authority.verify(b"hello world", &sign, 0.into()));
     }
 }

@@ -14,7 +14,4 @@
    limitations under the License.
 */
 
-pub mod authority;
-pub mod authority_pen;
-pub mod authority_verifier;
-use super::signature;
+pub mod dataio;

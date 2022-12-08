@@ -15,8 +15,9 @@
 */
 
 use aleph_bft::SignatureSet;
-use codec::{Decode, Encode};
 use libp2p::core::identity::ed25519::Keypair;
+use parity_scale_codec::{Decode, Encode};
+//use parity_scale_codec_derive::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
 

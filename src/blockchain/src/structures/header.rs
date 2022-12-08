@@ -14,9 +14,9 @@
    limitations under the License.
 */
 
-use codec::{Decode, Encode};
 use libp2p::{identity, PeerId};
 use multihash::Multihash;
+use parity_scale_codec::{Decode, Encode};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -34,7 +34,7 @@ pub struct Address {
 impl From<identity::PublicKey> for Address {
     fn from(key: identity::PublicKey) -> Address {
         Self {
-            peer_id: PeerId::from_public_key(&key).into(),
+            peer_id: Multihash::from_bytes(&PeerId::from_public_key(&key).to_bytes()).unwrap(),
         }
     }
 }
@@ -42,7 +42,7 @@ impl From<identity::PublicKey> for Address {
 impl From<PeerId> for Address {
     fn from(peer_id: PeerId) -> Address {
         Self {
-            peer_id: peer_id.into(),
+            peer_id: Multihash::from_bytes(&peer_id.to_bytes()).unwrap(),
         }
     }
 }
