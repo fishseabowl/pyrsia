@@ -114,20 +114,60 @@ dependencies = [
 
 [[package]]
 name = "aleph-bft"
-version = "0.8.4"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "538d26ed9842009b131db7afed8166c54666b869f7b3b0bd16070957f04ead39"
+checksum = "81160a54457bf47327d9093b5234b38fa04bfa4eee60edd34cc8671484d60e6a"
+dependencies = [
+ "aleph-bft-rmc",
+ "aleph-bft-types",
+ "async-trait",
+ "derivative",
+ "futures",
+ "futures-timer",
+ "itertools",
+ "log",
+ "parity-scale-codec 3.1.5",
+ "parking_lot 0.12.1",
+ "rand 0.8.5",
+]
+
+[[package]]
+name = "aleph-bft-crypto"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fcc63efe80dacbfe53bc008aab6a24e864142198355b1a9a4f31543246e3d63f"
 dependencies = [
  "async-trait",
  "bit-vec",
- "derivative",
  "derive_more",
+ "log",
+ "parity-scale-codec 3.1.5",
+]
+
+[[package]]
+name = "aleph-bft-rmc"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "38c317cd1a7c5b9208fd02c8f33ea7a89b55be1181ccc42da45e12dbefb66209"
+dependencies = [
+ "aleph-bft-crypto",
+ "async-trait",
  "futures",
  "futures-timer",
  "log",
- "parity-scale-codec 2.3.1",
- "parking_lot 0.11.2",
- "rand 0.8.5",
+ "parity-scale-codec 3.1.5",
+]
+
+[[package]]
+name = "aleph-bft-types"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14c0995c7a6709cec7dc62ef8316426442ea4756b34182c21d6549a1c6bfb904"
+dependencies = [
+ "aleph-bft-crypto",
+ "async-trait",
+ "futures",
+ "parity-scale-codec 3.1.5",
 ]
 
 [[package]]
