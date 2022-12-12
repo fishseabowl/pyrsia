@@ -64,14 +64,13 @@ impl AuthorityVerifier {
     /// Verifies whether the given signature set is a correct and complete multisignature of the
     /// message. Completeness requires more than 2/3 of all authorities.
     pub fn is_complete(&self, msg: &[u8], partial: &MultiSignature) -> bool {
-        if let signature_count = partial
+        let signature_count = partial
             .iter()
             .map(|(i, sgn)| self.verify(msg, sgn, i) == true)
-            .count()
-        {
-            if signature_count < self.threshold() {
-                return false;
-            }
+            .count();
+
+        if signature_count < self.threshold() {
+            return false;
         }
 
         true

@@ -68,3 +68,5 @@ impl FinalizationHandler {
         (Self { tx }, rx)
     }
 }
+
+pub type NetworkData = aleph_bft::NetworkData<HashDigest, Block, Signature, MultiSignature>;
