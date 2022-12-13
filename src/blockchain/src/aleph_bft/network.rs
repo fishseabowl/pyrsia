@@ -43,3 +43,29 @@ impl aleph_bft::Network<HashDigest, Block, Signature, MultiSignature> for Networ
         })
     }
 }
+
+#[derive(Clone, Decode, Encode, Debug)]
+enum BlockChainMessage {
+    Consensus(NetworkData),
+    Block(Block),
+}
+
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Decode, Encode)]
+pub enum Recipient {
+    Everyone,
+    Node(NodeIndex),
+    AuthorizedNodeList(HashSet<NodeIndex>),
+}
+
+pub struct NetworkManager {
+    id: NodeIndex,
+    address: Address,
+    addresses: HashMap<NodeIndex, Address>,
+    bootnodes: HashSet<NodeIndex>,
+    n_nodes: usize,
+    listener: TcpListener,
+    consensus_tx: UnboundedSender<NetworkData>,
+    consensus_rx: UnboundedReceiver<(NetworkData, Recipient)>,
+    block_tx: UnboundedSender<Block>,
+    block_rx: UnboundedReceiver<Block>,
+}

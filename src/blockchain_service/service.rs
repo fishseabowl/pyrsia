@@ -18,6 +18,7 @@ use bincode::{deserialize, serialize};
 use libp2p::identity;
 use libp2p::PeerId;
 use log::warn;
+use pyrsia_blockchain_network::aleph_bft::network;
 use pyrsia_blockchain_network::blockchain::Blockchain;
 use pyrsia_blockchain_network::error::BlockchainError;
 use pyrsia_blockchain_network::structures::block::Block;
@@ -38,12 +39,11 @@ pub const BLOCKCHAIN_ORDINAL_LENGTH: usize = 16;
 pub const BLOCKCHAIN_MAX_SIZE_PER_MESSAGE: usize = 10 * 1024 * 1024;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-#[repr(u8)]
 pub enum BlockchainCommand {
-    Broadcast = 1,                // Broadcast the updated block to all other nodes
-    PushToPeer = 2,               // Send a block to a peer
-    PullFromPeer = 3,             // Pull blocks from a peer
-    QueryHighestBlockOrdinal = 4, // Query the current highest (latest) block ordinal number from other nodes
+     SendBlock(BlockChainMessage::Block, Recipient),   //Broadcast updated blocks or just send to a single node
+     QueryHighestBlockOrdinal,      //Query the current highest (latest) block ordinal number from other nodes
+     PullFromPeer(Recipient, Ordinal, Ordinal),  //Pull blocks[start..==end] from a peer
+     SendMessage(Message, Recipient),  //Send consensus messages
 }
 
 impl TryFrom<u8> for BlockchainCommand {

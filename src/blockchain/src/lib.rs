@@ -14,6 +14,7 @@
    limitations under the License.
 */
 
+pub mod aleph_bft;
 pub mod blockchain;
 pub mod crypto;
 pub mod error;

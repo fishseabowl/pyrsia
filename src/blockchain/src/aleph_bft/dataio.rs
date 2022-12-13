@@ -14,13 +14,13 @@
    limitations under the License.
 */
 
-use aleph_bft_types::{
-    DataProvider, FinalizationHandler , NodeIndex,
-};
+use aleph_bft::{DataProvider, FinalizationHandler, NodeIndex};
 use async_trait::async_trait;
 use codec::{Decode, Encode};
 use futures::{channel::mpsc::unbounded, future::pending};
 use log::{error, info};
+
+use crate::structures::block::Block;
 
 type Receiver<T> = futures::channel::mpsc::UnboundedReceiver<T>;
 type Sender<T> = futures::channel::mpsc::UnboundedSender<T>;
@@ -35,10 +35,7 @@ pub struct DataStore {
 
 impl DataStore {
     pub fn new(id: NodeIndex, block: Block) -> Self {
-        Self {
-            id,
-            block,
-        }
+        Self { id, block }
     }
 }
 
@@ -68,5 +65,3 @@ impl FinalizationHandler {
         (Self { tx }, rx)
     }
 }
-
-pub type NetworkData = aleph_bft::NetworkData<HashDigest, Block, Signature, MultiSignature>;
