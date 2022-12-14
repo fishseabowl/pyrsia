@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-use aleph_bft::{DataProvider, FinalizationHandler, NodeIndex};
+use aleph_bft::NodeIndex;
 use async_trait::async_trait;
 use codec::{Decode, Encode};
 use futures::{channel::mpsc::unbounded, future::pending};
@@ -40,7 +40,7 @@ impl DataStore {
 }
 
 #[async_trait]
-impl DataProvider<Data> for DataStore {
+impl aleph_bft::DataProvider<Data> for DataStore {
     async fn get_data(&mut self) -> Data {
         self.block
     }

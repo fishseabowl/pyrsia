@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-use crate::blockchain_service;
+use crate::block_service;
 use async_trait::async_trait;
 use futures::prelude::*;
 use libp2p::core::upgrade::{read_length_prefixed, write_length_prefixed, ProtocolName};

@@ -117,7 +117,7 @@ pub async fn handle_request_blockchain(
     channel: ResponseChannel<BlockchainResponse>,
 ) -> anyhow::Result<()> {
     debug!("Handling request blockchain");
-    match BlockchainCommand::try_from(data[0])? {
+    /*     match BlockchainCommand::try_from(data[0])? {
         BlockchainCommand::Broadcast => {
             debug!("Blockchain receives BlockchainCommand::Broadcast");
             let block_ordinal: Ordinal = deserialize(&data[1..17])?;
@@ -154,7 +154,7 @@ pub async fn handle_request_blockchain(
             debug!("Blockchain receives other command");
             todo!()
         }
-    }
+    } */
 }
 
 pub async fn handle_broadcast_blockchain(

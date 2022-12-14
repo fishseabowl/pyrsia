@@ -14,7 +14,13 @@
    limitations under the License.
 */
 
-use super::Data;
+use crate::{
+    crypto::hash_algorithm::HashDigest,
+    signature::{MultiSignature, Signature},
+    structures::block::Block,
+};
+
+use super::dataio;
 use aleph_bft::{NodeIndex, Recipient, TaskHandle};
 
 pub type NetworkData = aleph_bft::NetworkData<HashDigest, Block, Signature, MultiSignature>;

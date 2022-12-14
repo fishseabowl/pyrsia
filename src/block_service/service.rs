@@ -29,9 +29,6 @@ use std::path::Path;
 
 use crate::network::client::Client;
 
-/// Blockchain command length is 1 byte
-pub const BLOCKCHAIN_COMMAND_LENGTH: usize = 1;
-
 /// Blockchain ordinal length is 16 bytes
 pub const BLOCKCHAIN_ORDINAL_LENGTH: usize = 16;
 
@@ -43,21 +40,7 @@ pub enum BlockchainCommand {
      SendBlock(BlockChainMessage::Block, Recipient),   //Broadcast updated blocks or just send to a single node
      QueryHighestBlockOrdinal,      //Query the current highest (latest) block ordinal number from other nodes
      PullFromPeer(Recipient, Ordinal, Ordinal),  //Pull blocks[start..==end] from a peer
-     SendMessage(Message, Recipient),  //Send consensus messages
-}
-
-impl TryFrom<u8> for BlockchainCommand {
-    type Error = &'static BlockchainError;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            1u8 => Ok(Self::Broadcast),
-            2u8 => Ok(Self::PushToPeer),
-            3u8 => Ok(Self::PullFromPeer),
-            4u8 => Ok(Self::QueryHighestBlockOrdinal),
-            _ => Err(&BlockchainError::InvalidBlockchainCmd),
-        }
-    }
+     SendConsensusMessage(BlockChainMessage::Consensus, Recipient),  //Send consensus messages
 }
 
 pub struct BlockchainService {

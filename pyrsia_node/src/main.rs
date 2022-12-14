@@ -24,7 +24,7 @@ use libp2p::PeerId;
 use network::handlers;
 use pyrsia::artifact_service::service::ArtifactService;
 use pyrsia::artifact_service::storage::ARTIFACTS_DIR;
-use pyrsia::blockchain_service::service::BlockchainService;
+use pyrsia::block_service::service::BlockchainService;
 use pyrsia::build_service::event::{BuildEventClient, BuildEventLoop};
 use pyrsia::build_service::service::BuildService;
 use pyrsia::docker::error_util::*;

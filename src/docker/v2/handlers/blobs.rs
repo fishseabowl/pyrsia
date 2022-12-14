@@ -60,7 +60,7 @@ fn get_package_specific_artifact_id(name: &str, digest: &str) -> String {
 mod tests {
     use super::*;
     use crate::artifact_service::storage::ArtifactStorage;
-    use crate::blockchain_service::service::BlockchainService;
+    use crate::block_service::service::BlockchainService;
     use crate::build_service::event::BuildEventClient;
     use crate::network::client::command::Command;
     use crate::network::client::Client;
