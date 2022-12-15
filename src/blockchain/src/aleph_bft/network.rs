@@ -22,6 +22,8 @@ use crate::{
 
 use super::dataio;
 use aleph_bft::{NodeIndex, Recipient, TaskHandle};
+use futures::channel::mpsc;
+use log::{trace, warn};
 
 pub type NetworkData = aleph_bft::NetworkData<HashDigest, Block, Signature, MultiSignature>;
 
@@ -31,7 +33,7 @@ pub struct Network {
 }
 
 #[async_trait::async_trait]
-impl aleph_bft::Network<HashDigest, Block, Signature, MultiSignature> for Network {
+impl aleph_bft::Network<NetworkData> for Network {
     fn send(&self, data: NetworkData, recipient: Recipient) {
         trace!("Sending a message to: {:?}", recipient);
         if let Err(e) = self.msg_to_manager_tx.unbounded_send((data, recipient)) {
