@@ -23,7 +23,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::crypto::hash_algorithm::HashDigest;
 
-#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq, Copy, Decode, Encode)]
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq, Copy, Decode, Encode, Default,
+)]
 pub struct Address {
     // This can not be libp2p's PeerId as it is missing the SCALE codec support for Aleph,
     // internally it's a https://github.com/libp2p/rust-libp2p/blob/6cc3b4ec52c922bfcf562a29b5805c3150e37c75/core/src/peer_id.rs#L40
@@ -79,7 +81,9 @@ fn calculate_hash(incomplete_header: &PartialHeader) -> Result<HashDigest, binco
 }
 
 /// struct Header define the header of a block
-#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq, Copy, Decode, Encode)]
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq, Copy, Decode, Encode, Default,
+)]
 pub struct Header {
     /// 256-bit Keccak Hash of the parent block (previous [`Block`][block]'s [`hash`][hash])
     ///

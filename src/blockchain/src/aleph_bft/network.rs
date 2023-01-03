@@ -14,16 +14,19 @@
    limitations under the License.
 */
 
+use std::collections::{HashMap, HashSet};
+
 use crate::{
     crypto::hash_algorithm::HashDigest,
     signature::{MultiSignature, Signature},
-    structures::block::Block,
+    structures::{block::Block, header::Address},
 };
 
 use super::dataio;
-use aleph_bft::{NodeIndex, Recipient, TaskHandle};
-use futures::channel::mpsc;
+use aleph_bft::{NodeIndex, TaskHandle};
+use futures::channel::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use log::{trace, warn};
+use parity_scale_codec::{Decode, Encode};
 
 pub type NetworkData = aleph_bft::NetworkData<HashDigest, Block, Signature, MultiSignature>;
 
@@ -34,7 +37,7 @@ pub struct Network {
 
 #[async_trait::async_trait]
 impl aleph_bft::Network<NetworkData> for Network {
-    fn send(&self, data: NetworkData, recipient: Recipient) {
+    fn send(&self, data: NetworkData, recipient: aleph_bft::Recipient) {
         trace!("Sending a message to: {:?}", recipient);
         if let Err(e) = self.msg_to_manager_tx.unbounded_send((data, recipient)) {
             warn!("Failed network send: {:?}", e);
@@ -62,7 +65,7 @@ enum BlockChainMessage {
 pub enum Recipient {
     Everyone,
     Node(NodeIndex),
-    AuthorizedNodeList(HashSet<NodeIndex>),
+    AuthorizedNodeList(Vec<NodeIndex>),
 }
 
 pub struct NetworkManager {
@@ -71,7 +74,6 @@ pub struct NetworkManager {
     addresses: HashMap<NodeIndex, Address>,
     bootnodes: HashSet<NodeIndex>,
     n_nodes: usize,
-    listener: TcpListener,
     consensus_tx: UnboundedSender<NetworkData>,
     consensus_rx: UnboundedReceiver<(NetworkData, Recipient)>,
     block_tx: UnboundedSender<Block>,

@@ -27,7 +27,7 @@ type Sender<T> = futures::channel::mpsc::UnboundedSender<T>;
 
 pub type Data = Block;
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default, Decode, Encode)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Default, Decode, Encode)]
 pub struct DataStore {
     id: NodeIndex,
     block: Block,
@@ -41,8 +41,8 @@ impl DataStore {
 
 #[async_trait]
 impl aleph_bft::DataProvider<Data> for DataStore {
-    async fn get_data(&mut self) -> Data {
-        self.block
+    async fn get_data(&mut self) -> Option<Data> {
+        Some(self.block)
     }
 }
 

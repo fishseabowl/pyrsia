@@ -27,14 +27,14 @@ use crate::crypto::hash_algorithm::HashDigest;
 use crate::signature::Signature;
 
 pub type PublicKey = [u8; 32];
-#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq, Decode, Encode, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq, Decode, Encode, Hash, Default)]
 pub struct BlockSignature {
     signature: Signature,
     #[codec(skip)]
     public_key: PublicKey,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq, Decode, Encode, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq, Decode, Encode, Hash, Default)]
 pub struct Block {
     pub header: Header,
     // TODO(fishseabowl): Should be a Merkle Tree to speed up validation with root hash

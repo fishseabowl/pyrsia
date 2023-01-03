@@ -50,6 +50,17 @@ impl Signature {
     }
 }
 
+impl Default for Signature {
+    fn default() -> Self {
+        return Signature {
+            signature: ed25519_dalek::Signature::from_bytes(
+                &[0; ed25519_dalek::Signature::BYTE_SIZE],
+            )
+            .unwrap(),
+        };
+    }
+}
+
 impl Encode for Signature {
     fn using_encoded<R, F: FnOnce(&[u8]) -> R>(&self, f: F) -> R {
         self.signature.to_bytes().using_encoded(f)

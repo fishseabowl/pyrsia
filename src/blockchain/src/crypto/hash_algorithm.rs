@@ -19,7 +19,18 @@ use parity_scale_codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
 #[derive(
-    Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash, Decode, Encode, PartialOrd,
+    Serialize,
+    Deserialize,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Decode,
+    Encode,
+    PartialOrd,
+    Default,
 )]
 pub struct HashDigest {
     multihash: Multihash,
