@@ -65,3 +65,25 @@ impl FinalizationHandler {
         (Self { tx }, rx)
     }
 }
+#[derive(Clone, Debug, Default)]
+pub struct Saver {
+    data: Arc<Mutex<Vec<u8>>>,
+}
+
+impl Saver {
+    pub fn new(data: Arc<Mutex<Vec<u8>>>) -> Self {
+        Self { data }
+    }
+}
+
+impl Write for Saver {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
+        self.data.lock().extend_from_slice(buf);
+        Ok(buf.len())
+    }
+    fn flush(&mut self) -> Result<(), std::io::Error> {
+        Ok(())
+    }
+}
+
+pub type Loader = Cursor<Vec<u8>>;

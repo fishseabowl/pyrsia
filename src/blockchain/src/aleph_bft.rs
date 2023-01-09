@@ -15,4 +15,5 @@
 */
 
 pub mod dataio;
+pub mod member;
 pub mod network;
