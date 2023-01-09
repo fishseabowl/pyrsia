@@ -222,7 +222,7 @@ impl BlockchainService {
             Some(last_block) => {
                 let expected = last_block.header.ordinal + 1;
                 match ordinal.cmp(&expected) {
-                    Ordering::Greater => Err(BlockchainError::LaggingBlockchainData),
+                    Ordering::Greater => self.blockchain.sync_blocks_from_others().await,
                     Ordering::Less => {
                         warn!("Blockchain received a duplicate block!");
                         Ok(())
@@ -264,6 +264,31 @@ impl BlockchainService {
         }
 
         Ok(ordinal)
+    }
+
+    pub async fn sync_blocks_from_others(&mut self, other_peer_id: &PeerId) ->Result<Ordinal, BlockchainError> {
+        let ordinal = self.query_blockchain_ordinal(other_peer_id).await?;
+
+        let start = match self.query_last_block() {
+            Some(start)=> start,
+            None => 0,
+        };
+
+        if ordinal <= start {
+            return Ok(oridnal)
+        }
+
+        for block in self.pull_block_from_other_nodes(other_peer_id, start, ordinal)
+        .await?
+        .iter()
+        {
+            let ordinal = block.header.ordinal;
+            let block = block.clone();
+            self.add_block(ordinal, Box::new(block)).await?;
+        }
+
+        Ok(ordinal)
+
     }
 }
 
