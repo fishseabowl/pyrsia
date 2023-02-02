@@ -28,7 +28,7 @@ pub enum BlockchainEvent {
     // AddBlock is used to create a new block in the local blockchain
     AddBlock {
         payload: Vec<u8>,
-        sender: oneshot::Sender<Result<(), BlockchainError>>,
+        sender: oneshot::Sender<Result<Ordinal, BlockchainError>>,
     },
     // FetchBlocksLocal is used to fetch blocks from the local blockchain
     FetchBlocksLocal {
@@ -38,25 +38,25 @@ pub enum BlockchainEvent {
     },
     // QueryBlockOrdinalLocal is used to query last ordinal in the local blockchain
     QueryBlockOrdinalLocal {
-        sender: oneshot::Sender<anyhow::Result<Ordinal>>,
+        sender: oneshot::Sender<Result<Ordinal, BlockchainError>>,
     },
     // HandleBlockBroadcast is used to broadcast a block to all nodes
     HandleBlockBroadcast {
         block_ordinal: Ordinal,
         block: Box<Block>,
-        sender: oneshot::Sender<anyhow::Result<()>>,
+        sender: oneshot::Sender<Result<(), BlockchainError>>,
     },
     // HandlePullBlocks is used to pull blocks from the remote node
     HandlePullBlocks { 
         start: Ordinal,
         end: Ordinal,
         peer_id: PeerId,
-        sender: oneshot::Sender<anyhow::Result<Vec<Block>>>,
+        sender: oneshot::Sender<Result<Vec<Block>, BlockchainError>>,
     },
     // HandleQueryBlockOrdinal is used to query last blockchain ordinal in the remote node
     HandleQueryBlockOrdinal {
         peer_id: PeerId,
-        sender: oneshot::Sender<anyhow::Result<Ordinal>>,
+        sender: oneshot::Sender<Result<Ordinal, BlockchainError>>,
     },
 }
 
@@ -72,7 +72,8 @@ impl BlockchainEventClient {
         }
     }
 
-    pub async fn add_block(&self, payload: Vec<u8>) -> Result<(), BlockchainError> {
+    /// Create a new block on the local node
+    pub async fn add_block(&self, payload: Vec<u8>) -> Result<Ordinal, BlockchainError> {
         let (sender, receiver) = oneshot::channel();
         self.blockchain_event_sender
             .send(BlockchainEvent::AddBlock { payload, sender })
@@ -83,30 +84,8 @@ impl BlockchainEventClient {
         receiver.await.map_err(BlockchainError::ChannelClosed)?
     }
 
-    /// Pull block data from remote peers
-    pub async fn pull_blocks_from_peer(
-        &self,
-        start: Ordinal,
-        end: Ordinal,
-        peer_id: &PeerId,
-    ) -> anyhow::Result<Vec<Block>> {
-        let (sender, receiver) = oneshot::channel();
-        self.blockchain_event_sender
-            .send(BlockchainEvent::HandlePullBlocksFromPeer {
-                start,
-                end,
-                peer_id: *peer_id,
-                sender,
-            })
-            .await
-            .unwrap_or_else(|e| {
-                error!("Error blockchain_event_sender. {:#?}", e);
-            });
-        receiver.await.map_err(BlockchainError::ChannelClosed)?
-    }
-
-    /// Fetch block data from local repo
-    pub async fn fetch_blocks_from_local(
+    /// Fetch block data from the local node
+    pub async fn fetch_blocks_local(
         &self,
         start: Ordinal,
         end: Ordinal, //include end ordinal block data
@@ -121,11 +100,24 @@ impl BlockchainEventClient {
         receiver.await.map_err(BlockchainError::ChannelClosed)?
     }
 
-    pub async fn handle_broadcast_blockchain(
+    /// Query the last block ordinal from the remote node
+    pub async fn query_block_ordinal_local(&self) -> Result<Ordinal, BlockchainError> {
+        let (sender, receiver) = oneshot::channel();
+        self.blockchain_event_sender
+            .send(BlockchainEvent::QueryBlockOrdinalLocal {sender})
+            .await
+            .unwrap_or_else(|e| {
+                error!("Error blockchain_event_sender. {:#?}", e);
+            });
+        receiver.await.map_err(BlockchainError::ChannelClosed)?
+    }
+
+    /// Broadcast a block to all nodes
+    pub async fn handle_block_broadcast(
         &self,
         block_ordinal: Ordinal,
         block: Block,
-    ) -> anyhow::Result<()> {
+    ) -> Result<(), BlockchainError> {
         let (sender, receiver) = oneshot::channel();
         self.blockchain_event_sender
             .send(BlockchainEvent::HandleBlockBroadcast {
@@ -140,10 +132,33 @@ impl BlockchainEventClient {
         receiver.await.map_err(BlockchainError::ChannelClosed)?
     }
 
-    pub async fn handle_query_block_ordinal_from_peer(&self) -> anyhow::Result<Ordinal> {
+    /// Pull block data from the remote node
+    pub async fn hanlde_pull_blocks(
+        &self,
+        start: Ordinal,
+        end: Ordinal,
+        peer_id: &PeerId,
+    ) -> Result<Vec<Block>, BlockchainError> {
         let (sender, receiver) = oneshot::channel();
         self.blockchain_event_sender
-            .send(BlockchainEvent::HandleQueryBlockOrdinal { sender })
+            .send(BlockchainEvent::HandlePullBlocks {
+                start,
+                end,
+                peer_id: *peer_id,
+                sender,
+            })
+            .await
+            .unwrap_or_else(|e| {
+                error!("Error blockchain_event_sender. {:#?}", e);
+            });
+        receiver.await.map_err(BlockchainError::ChannelClosed)?
+    }
+
+    /// Query the last block ordinal from the remote node
+    pub async fn handle_query_block_ordinal(&self, peer_id: PeerId) -> Result<Ordinal, BlockchainError> {
+        let (sender, receiver) = oneshot::channel();
+        self.blockchain_event_sender
+            .send(BlockchainEvent::HandleQueryBlockOrdinal {peer_id, sender})
             .await
             .unwrap_or_else(|e| {
                 error!("Error blockchain_event_sender. {:#?}", e);
