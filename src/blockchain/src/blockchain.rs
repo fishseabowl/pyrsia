@@ -89,8 +89,8 @@ impl Blockchain {
         }
     }
 
-    /// Add block after receiving payload and keypair
-    pub async fn add_block(
+    /// Create a new block after receiving payload and keypair
+    pub async fn create_new_block(
         &mut self,
         payload: Vec<u8>,
         local_key: &identity::Keypair,
@@ -124,10 +124,7 @@ impl Blockchain {
     }
 
     /// Update block after receiving the new block from other peers
-    pub async fn update_block_from_peers(
-        &mut self,
-        block: Box<Block>,
-    ) -> Result<(), BlockchainError> {
+    pub async fn update_block(&mut self, block: Box<Block>) -> Result<(), BlockchainError> {
         self.commit_block(*block).await
     }
 
