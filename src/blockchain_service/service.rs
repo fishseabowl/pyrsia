@@ -108,14 +108,14 @@ impl BlockchainService {
     }
 
     /// Add payload to blockchain. It will be called by other services (e.g. transparent logging service)
-    pub async fn add_payload(&mut self, payload: Vec<u8>) -> Result<(), BlockchainError> {
-        self.blockchain
+    pub async fn add_payload(&mut self, payload: Vec<u8>) -> Result<Ordinal, BlockchainError> {
+        let oridnal = self.blockchain
             .create_new_block(payload, &identity::Keypair::Ed25519(self.keypair.clone()))
             .await?;
 
         self.broadcast_blockchain(Box::new(self.blockchain.last_block().unwrap()))
             .await?;
-        Ok(())
+        Ok(oridnal)
     }
 
     /// Notify other nodes to add a new block.
@@ -207,7 +207,7 @@ impl BlockchainService {
         &mut self,
         ordinal: Ordinal,
         block: Box<Block>,
-    ) -> Result<(), BlockchainError> {
+    ) -> Result<Ordinal, BlockchainError> {
         let last_block = self.blockchain.last_block();
 
         match last_block {
@@ -215,17 +215,17 @@ impl BlockchainService {
                 if ordinal == 0 {
                     self.blockchain.update_block(block).await
                 } else {
-                    Ok(())
+                    Err(BlockchainError::InvalidBlockchainOrdinal(ordinal))
                 }
             }
 
             Some(last_block) => {
                 let expected = last_block.header.ordinal + 1;
                 match ordinal.cmp(&expected) {
-                    Ordering::Greater => Err(BlockchainError::LaggingBlockchainData),
+                    Ordering::Greater => Err(BlockchainError::InvalidBlockchainOrdinal(ordinal)),
                     Ordering::Less => {
                         warn!("Blockchain received a duplicate block!");
-                        Ok(())
+                        Ok(ordinal)
                     }
                     Ordering::Equal => self.blockchain.update_block(block).await,
                 }

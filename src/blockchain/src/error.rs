@@ -44,8 +44,6 @@ pub enum BlockchainError {
     InvalidBlockchainOrdinal(Ordinal),
     #[error("Blockchain: Key {0} is not valid Ed25519 format")]
     InvalidKey(String),
-    #[error("Lagging Blockchain Data")]
-    LaggingBlockchainData,
     #[error("Invalid storage path: {0}")]
     InvalidStoragePath(PathBuf),
     #[error("Could not connect to blockchain topic")]

@@ -213,15 +213,6 @@ impl BlockchainEventLoop {
                     error!("add block error. {:#?}", e);
                 });
             }
-            BlockchainEvent::PullBlocksFromPeer { start, end, peer_id, sender } => {
-                let result = self
-                    .blockchain_service
-                    .pull_blocks_from_peer(&peer_id, start, end )
-                    .await;
-                sender.send(result).unwrap_or_else(|e| {
-                    error!("pull blocks from peer error. {:#?}", e);
-                });
-            }
             BlockchainEvent::FetchBlocksLocal { start, end, sender } => {
                 debug!("Handling pull blocks from {:?} to {:?} ", start, end);
 
@@ -247,9 +238,7 @@ impl BlockchainEventLoop {
                         error!("block broadcast error. {:#?}", e);
                     });
                 } else if let Err(e) = self.artifact_service.handle_block_added(payloads).await {
-                    sender.send(Err(e)).unwrap_or_else(|e| {
-                        error!("block broadcast error. {:#?}", e);
-                    });
+                    sender.send(Err(BlockchainError::AnyhowError(e)));
                 } else {
                     sender.send(Ok(())).unwrap_or_else(|e| {
                         error!("block broadcast error. {:#?}", e);
