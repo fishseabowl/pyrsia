@@ -25,8 +25,8 @@ use tokio::sync::{mpsc, oneshot};
 
 #[derive(Debug)]
 pub enum BlockchainEvent {
-    // AddBlock is used to create a new block in the local blockchain
-    AddBlock {
+    // CreateBlock is used to create a new block in the local blockchain
+    CreateBlock {
         payload: Vec<u8>,
         sender: oneshot::Sender<Result<Ordinal, BlockchainError>>,
     },
@@ -47,10 +47,10 @@ pub enum BlockchainEvent {
         sender: oneshot::Sender<Result<(), BlockchainError>>,
     },
     // HandlePullBlocks is used to pull blocks from the remote node
-    HandlePullBlocks { 
+    HandlePullBlocks {
+        peer_id: PeerId,
         start: Ordinal,
         end: Ordinal,
-        peer_id: PeerId,
         sender: oneshot::Sender<Result<Vec<Block>, BlockchainError>>,
     },
     // HandleQueryBlockOrdinal is used to query last blockchain ordinal in the remote node
@@ -76,10 +76,10 @@ impl BlockchainEventClient {
     pub async fn add_block(&self, payload: Vec<u8>) -> Result<Ordinal, BlockchainError> {
         let (sender, receiver) = oneshot::channel();
         self.blockchain_event_sender
-            .send(BlockchainEvent::AddBlock { payload, sender })
+            .send(BlockchainEvent::CreateBlock { payload, sender })
             .await
             .unwrap_or_else(|e| {
-                error!("Error blockchain_event_sender. {:#?}", e);
+                error!("Error blockchain_event_sender: {:#?}", e);
             });
         receiver.await.map_err(BlockchainError::ChannelClosed)?
     }
@@ -95,7 +95,7 @@ impl BlockchainEventClient {
             .send(BlockchainEvent::FetchBlocksLocal { start, end, sender })
             .await
             .unwrap_or_else(|e| {
-                error!("Error blockchain_event_sender. {:#?}", e);
+                error!("Error blockchain_event_sender: {:#?}", e);
             });
         receiver.await.map_err(BlockchainError::ChannelClosed)?
     }
@@ -107,7 +107,7 @@ impl BlockchainEventClient {
             .send(BlockchainEvent::QueryBlockOrdinalLocal {sender})
             .await
             .unwrap_or_else(|e| {
-                error!("Error blockchain_event_sender. {:#?}", e);
+                error!("Error blockchain_event_sender: {:#?}", e);
             });
         receiver.await.map_err(BlockchainError::ChannelClosed)?
     }
@@ -127,7 +127,7 @@ impl BlockchainEventClient {
             })
             .await
             .unwrap_or_else(|e| {
-                error!("Error blockchain_event_sender. {:#?}", e);
+                error!("Error blockchain_event_sender: {:#?}", e);
             });
         receiver.await.map_err(BlockchainError::ChannelClosed)?
     }
@@ -149,7 +149,7 @@ impl BlockchainEventClient {
             })
             .await
             .unwrap_or_else(|e| {
-                error!("Error blockchain_event_sender. {:#?}", e);
+                error!("Error blockchain_event_sender: {:#?}", e);
             });
         receiver.await.map_err(BlockchainError::ChannelClosed)?
     }
@@ -161,7 +161,7 @@ impl BlockchainEventClient {
             .send(BlockchainEvent::HandleQueryBlockOrdinal {peer_id, sender})
             .await
             .unwrap_or_else(|e| {
-                error!("Error blockchain_event_sender. {:#?}", e);
+                error!("Error blockchain_event_sender: {:#?}", e);
             });
         receiver.await.map_err(BlockchainError::ChannelClosed)?
     }
@@ -197,7 +197,7 @@ impl BlockchainEventLoop {
                     self.handle_blockchain_event(blockchain_event).await;
                 }
                 None => {
-                    warn!("Got empty build event");
+                    warn!("Got empty blockchain event");
                     return;
                 }
             }
@@ -207,19 +207,32 @@ impl BlockchainEventLoop {
     async fn handle_blockchain_event(&mut self, blockchain_event: BlockchainEvent) {
         debug!("Handle BlockchainEvent: {:?}", blockchain_event);
         match blockchain_event {
-            BlockchainEvent::AddBlock { payload, sender } => {
+            BlockchainEvent::CreateBlock { payload, sender } => {
                 let result = self.blockchain_service.add_payload(payload).await;
                 sender.send(result).unwrap_or_else(|e| {
-                    error!("add block error. {:#?}", e);
+                    error!("Failed to create a new block: {:#?}", e);
                 });
             }
             BlockchainEvent::FetchBlocksLocal { start, end, sender } => {
-                debug!("Handling pull blocks from {:?} to {:?} ", start, end);
+                debug!("Handle pull local blocks[{:?},{:?}] ", start, end);
 
                 let result = self.blockchain_service.fetch_blocks(start, end).await;
                 sender.send(result).unwrap_or_else(|e| {
-                    error!("pull blocks local error. {:#?}", e);
+                    error!("Failed to pull local blocks: {:#?}", e);
                 });
+            }
+            BlockchainEvent::QueryBlockOrdinalLocal { sender } => {
+                debug!("Handle query local block ordinal");
+
+                if  let Some(block) = self.blockchain_service.query_last_block().await {
+                    sender.send(Ok(block.header.ordinal)).unwrap_or_else(|e| {
+                        error!("Failed to query lcoal block ordinal: {:#?}", e);
+                    });
+                } else {
+                    sender.send(Err(BlockchainError::EmptyBlockchain)).unwrap_or_else(|e| {
+                        error!("Failed to query lcoal block ordinal: {:#?}", e);
+                    });
+                }    
             }
             BlockchainEvent::HandleBlockBroadcast {
                 block_ordinal,
@@ -238,41 +251,34 @@ impl BlockchainEventLoop {
                         error!("block broadcast error. {:#?}", e);
                     });
                 } else if let Err(e) = self.artifact_service.handle_block_added(payloads).await {
-                    sender.send(Err(BlockchainError::AnyhowError(e)));
+                    sender.send(Err(e.into())).unwrap_or_else(|e| {
+                        error!("block broadcast error. {:#?}", e);
+                    });
                 } else {
                     sender.send(Ok(())).unwrap_or_else(|e| {
                         error!("block broadcast error. {:#?}", e);
                     });
                 }
             }
-            BlockchainEvent::HandlePullBlocks { start, end, sender } => {
-                debug!("Handling pull blocks from {:?} to {:?} ", start, end);
+            BlockchainEvent::HandlePullBlocks { peer_id, start, end, sender } => {
+                debug!("Handling pull blocks[{:?},{:?}] from {:?}", start, end, peer_id);
 
-                let result = self.blockchain_service.pull_blocks(start, end).await;
+                let result = self.blockchain_service.pull_blocks_from_peer(&peer_id, start, end).await;
                 sender
                     .send(result.map_err(|e| e.into()))
                     .unwrap_or_else(|e| {
                         error!("block broadcast error. {:#?}", e);
                     });
             }
-            BlockchainEvent::HandleQueryBlockOrdinal { sender } => {
-                debug!("Handling query block ordinal");
+            BlockchainEvent::HandleQueryBlockOrdinal {peer_id, sender } => {
+                debug!("Handling query remote peer: {:?} block ordinal", peer_id);
 
-                match self.blockchain_service.query_last_block().await {
-                    Some(latest_block) => {
-                        let highest_ordinal = latest_block.header.ordinal;
-                        sender.send(Ok(highest_ordinal)).unwrap_or_else(|e| {
-                            error!("block broadcast error. {:#?}", e);
-                        });
-                    }
-                    None => {
-                        sender
-                            .send(Err(BlockchainError::InvalidBlockchainLength(0).into()))
-                            .unwrap_or_else(|e| {
-                                error!("block broadcast error. {:#?}", e);
-                            });
-                    }
-                }
+                let result = self.blockchain_service.query_blockchain_ordinal(&peer_id).await;
+                sender.send(result).unwrap_or_else(|e| {
+                    error!("block broadcast error. {:#?}", e);
+                });
+                    
+                
             }
         }
     }

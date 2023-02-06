@@ -144,7 +144,7 @@ impl BlockchainService {
         Ok(())
     }
 
-    async fn query_blockchain_ordinal(
+    pub async fn query_blockchain_ordinal(
         &mut self,
         other_peer_id: &PeerId,
     ) -> Result<Ordinal, BlockchainError> {
