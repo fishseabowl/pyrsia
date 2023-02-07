@@ -109,6 +109,7 @@ pub async fn handle_request_idle_metric(
 
 pub async fn handle_incoming_blockchain_command(
     blockchain_event_client: BlockchainEventClient,
+    other_peer_id: &PeerId,
     data: Vec<u8>,
 ) -> anyhow::Result<Vec<u8>> {
     debug!("Handling request blockchain");
@@ -118,7 +119,7 @@ pub async fn handle_incoming_blockchain_command(
             let block_ordinal: Ordinal = deserialize(&data[1..17])?;
             let block: Block = deserialize(&data[17..])?;
             blockchain_event_client
-                .handle_broadcast_blockchain(block_ordinal, block)
+                .handle_block_broadcast(block_ordinal, block)
                 .await?;
             vec![0u8]
         }
@@ -127,14 +128,14 @@ pub async fn handle_incoming_blockchain_command(
             let start: Ordinal = deserialize(&data[1..17])?;
             let end: Ordinal = deserialize(&data[17..])?;
             let blocks = blockchain_event_client
-                .handle_pull_blockchain_from_peer(start, end)
+                .hanlde_pull_blocks(other_peer_id, start, end)
                 .await?;
             serialize(&blocks).unwrap()
         }
         BlockchainCommand::QueryHighestBlockOrdinal => {
             debug!("Blockchain receives BlockchainCommand::QueryHighestBlockOrdinal");
             let highest_ordinal = blockchain_event_client
-                .handle_query_block_ordinal_from_peer()
+                .handle_query_block_ordinal(other_peer_id)
                 .await?;
             serialize(&highest_ordinal).unwrap()
         }

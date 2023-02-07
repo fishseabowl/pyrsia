@@ -132,10 +132,10 @@ mod tests {
         tokio::spawn(async move {
             loop {
                 match blockchain_event_receiver.recv().await {
-                    Some(BlockchainEvent::AddBlock { sender, .. }) => {
-                        let _ = sender.send(Ok(()));
+                    Some(BlockchainEvent::CreateBlock { sender, .. }) => {
+                        let _ = sender.send(Ok(0));
                     }
-                    _ => panic!("BlockchainEvent must match BlockchainEvent::AddBlock"),
+                    _ => panic!("BlockchainEvent must match BlockchainEvent::CreateBlock"),
                 }
             }
         });
@@ -179,10 +179,10 @@ mod tests {
         tokio::spawn(async move {
             loop {
                 match blockchain_event_receiver.recv().await {
-                    Some(BlockchainEvent::AddBlock { sender, .. }) => {
-                        let _ = sender.send(Ok(()));
+                    Some(BlockchainEvent::CreateBlock { sender, .. }) => {
+                        let _ = sender.send(Ok(0));
                     }
-                    _ => panic!("BlockchainEvent must match BlockchainEvent::AddBlock"),
+                    _ => panic!("BlockchainEvent must match BlockchainEvent::CreateBlock"),
                 }
             }
         });
@@ -248,10 +248,10 @@ mod tests {
         tokio::spawn(async move {
             loop {
                 match blockchain_event_receiver.recv().await {
-                    Some(BlockchainEvent::AddBlock { sender, .. }) => {
-                        let _ = sender.send(Ok(()));
+                    Some(BlockchainEvent::CreateBlock { sender, .. }) => {
+                        let _ = sender.send(Ok(0));
                     }
-                    _ => panic!("BlockchainEvent must match BlockchainEvent::AddBlock"),
+                    _ => panic!("BlockchainEvent must match BlockchainEvent::CreateBlock"),
                 }
             }
         });

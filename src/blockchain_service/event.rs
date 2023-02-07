@@ -135,9 +135,9 @@ impl BlockchainEventClient {
     /// Pull block data from the remote node
     pub async fn hanlde_pull_blocks(
         &self,
-        start: Ordinal,
-        end: Ordinal,
         peer_id: &PeerId,
+        start: Ordinal,
+        end: Ordinal,        
     ) -> Result<Vec<Block>, BlockchainError> {
         let (sender, receiver) = oneshot::channel();
         self.blockchain_event_sender
@@ -155,10 +155,10 @@ impl BlockchainEventClient {
     }
 
     /// Query the last block ordinal from the remote node
-    pub async fn handle_query_block_ordinal(&self, peer_id: PeerId) -> Result<Ordinal, BlockchainError> {
+    pub async fn handle_query_block_ordinal(&self, peer_id: &PeerId) -> Result<Ordinal, BlockchainError> {
         let (sender, receiver) = oneshot::channel();
         self.blockchain_event_sender
-            .send(BlockchainEvent::HandleQueryBlockOrdinal {peer_id, sender})
+            .send(BlockchainEvent::HandleQueryBlockOrdinal {peer_id: *peer_id, sender})
             .await
             .unwrap_or_else(|e| {
                 error!("Error blockchain_event_sender: {:#?}", e);
