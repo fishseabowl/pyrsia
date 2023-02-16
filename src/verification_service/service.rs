@@ -269,7 +269,7 @@ mod tests {
     async fn test_verify_add_artifact_transaction() {
         let tmp_dir = test_util::tests::setup();
 
-        let (mut transparency_log_service, mut blockchain_event_receiver) =
+        let (transparency_log_service, mut blockchain_event_receiver) =
             test_util::tests::create_transparency_log_service(&tmp_dir);
         let (mut verification_service, mut build_event_receiver) =
             test_util::tests::create_verification_service();
@@ -320,7 +320,7 @@ mod tests {
             })
             .await
             .unwrap();
-        let payload = serde_json::to_string(&transparency_log).unwrap();
+        let payload = serde_json::to_string(&transparency_log.0).unwrap();
 
         let (verification_result_sender, _verification_result_receiver) = oneshot::channel();
 
@@ -337,7 +337,7 @@ mod tests {
     async fn test_verify_add_artifact_transaction_starts_build_when_num_artifacts_reached() {
         let tmp_dir = test_util::tests::setup();
 
-        let (mut transparency_log_service, mut blockchain_event_receiver) =
+        let (transparency_log_service, mut blockchain_event_receiver) =
             test_util::tests::create_transparency_log_service(&tmp_dir);
         let (mut verification_service, mut build_event_receiver) =
             test_util::tests::create_verification_service();
@@ -380,7 +380,7 @@ mod tests {
                 })
                 .await
                 .unwrap();
-            let payload = serde_json::to_string(&transparency_log).unwrap();
+            let payload = serde_json::to_string(&transparency_log.0).unwrap();
             payloads.push(payload);
         }
 
@@ -415,7 +415,7 @@ mod tests {
     async fn test_handle_build_result_notifies_sender() {
         let tmp_dir = test_util::tests::setup();
 
-        let (mut transparency_log_service, mut blockchain_event_receiver) =
+        let (transparency_log_service, mut blockchain_event_receiver) =
             test_util::tests::create_transparency_log_service(&tmp_dir);
         let (mut verification_service, mut build_event_receiver) =
             test_util::tests::create_verification_service();
@@ -460,7 +460,7 @@ mod tests {
             })
             .await
             .unwrap();
-        let payload = serde_json::to_string(&transparency_log).unwrap();
+        let payload = serde_json::to_string(&transparency_log.0).unwrap();
 
         let (verification_result_sender, verification_result_receiver) = oneshot::channel();
 
@@ -494,7 +494,7 @@ mod tests {
     async fn test_handle_build_result_with_missing_artifact_notifies_sender() {
         let tmp_dir = test_util::tests::setup();
 
-        let (mut transparency_log_service, mut blockchain_event_receiver) =
+        let (transparency_log_service, mut blockchain_event_receiver) =
             test_util::tests::create_transparency_log_service(&tmp_dir);
         let (mut verification_service, mut build_event_receiver) =
             test_util::tests::create_verification_service();
@@ -539,7 +539,7 @@ mod tests {
             })
             .await
             .unwrap();
-        let payload = serde_json::to_string(&transparency_log).unwrap();
+        let payload = serde_json::to_string(&transparency_log.0).unwrap();
 
         let (verification_result_sender, verification_result_receiver) = oneshot::channel();
 
@@ -581,7 +581,7 @@ mod tests {
     async fn test_handle_build_result_with_different_hash_notifies_sender() {
         let tmp_dir = test_util::tests::setup();
 
-        let (mut transparency_log_service, mut blockchain_event_receiver) =
+        let (transparency_log_service, mut blockchain_event_receiver) =
             test_util::tests::create_transparency_log_service(&tmp_dir);
         let (mut verification_service, mut build_event_receiver) =
             test_util::tests::create_verification_service();
@@ -626,7 +626,7 @@ mod tests {
             })
             .await
             .unwrap();
-        let payload = serde_json::to_string(&transparency_log).unwrap();
+        let payload = serde_json::to_string(&transparency_log.0).unwrap();
 
         let (verification_result_sender, verification_result_receiver) = oneshot::channel();
 
@@ -670,7 +670,7 @@ mod tests {
     async fn test_handle_failed_build_notifies_sender() {
         let tmp_dir = test_util::tests::setup();
 
-        let (mut transparency_log_service, mut blockchain_event_receiver) =
+        let (transparency_log_service, mut blockchain_event_receiver) =
             test_util::tests::create_transparency_log_service(&tmp_dir);
         let (mut verification_service, mut build_event_receiver) =
             test_util::tests::create_verification_service();
@@ -713,7 +713,7 @@ mod tests {
             })
             .await
             .unwrap();
-        let payload = serde_json::to_string(&transparency_log).unwrap();
+        let payload = serde_json::to_string(&transparency_log.0).unwrap();
 
         let (verification_result_sender, verification_result_receiver) = oneshot::channel();
 
