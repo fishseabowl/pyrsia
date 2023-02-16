@@ -73,7 +73,7 @@ impl Blockchain {
             );
 
             let block = Block::new(HashDigest::new(b""), 0, Vec::from([transaction]), keypair);
-            Blockchain::save_block(&mut chain, block, &blockchain_path).await?
+            Blockchain::save_block(&mut chain, block, &blockchain_path).await?;
         }
 
         Ok(Self {
@@ -89,12 +89,12 @@ impl Blockchain {
         }
     }
 
-    /// Add block after receiving payload and keypair
-    pub async fn add_block(
+    /// Create a new block after receiving payload and keypair
+    pub async fn create_new_block(
         &mut self,
         payload: Vec<u8>,
         local_key: &identity::Keypair,
-    ) -> Result<(), BlockchainError> {
+    ) -> Result<Ordinal, BlockchainError> {
         let Ed25519(ed25519_key) = local_key;
 
         let submitter = Address::from(local_key.public());
@@ -124,15 +124,12 @@ impl Blockchain {
     }
 
     /// Update block after receiving the new block from other peers
-    pub async fn update_block_from_peers(
-        &mut self,
-        block: Box<Block>,
-    ) -> Result<(), BlockchainError> {
+    pub async fn update_block(&mut self, block: Box<Block>) -> Result<Ordinal, BlockchainError> {
         self.commit_block(*block).await
     }
 
     /// Commit block and notify block listeners
-    async fn commit_block(&mut self, block: Block) -> Result<(), BlockchainError> {
+    async fn commit_block(&mut self, block: Block) -> Result<Ordinal, BlockchainError> {
         Self::save_block(&mut self.chain, block, self.blockchain_path.as_path()).await
     }
 
@@ -148,7 +145,7 @@ impl Blockchain {
         chain: &mut Chain,
         block: Block,
         blockchain_path: impl AsRef<Path>,
-    ) -> Result<(), BlockchainError> {
+    ) -> Result<Ordinal, BlockchainError> {
         let block_ordinal = block.header.ordinal;
         chain.add_block(block);
         chain
@@ -159,7 +156,9 @@ impl Blockchain {
                     .to_path_buf()
                     .join(format!("{}.ser", block_ordinal)),
             )
-            .await
+            .await?;
+
+        return Ok(block_ordinal);
     }
 }
 
@@ -262,7 +261,7 @@ mod tests {
         let data = "Hello First Transaction";
 
         let result = blockchain
-            .add_block(data.as_bytes().to_vec(), &keypair)
+            .create_new_block(data.as_bytes().to_vec(), &keypair)
             .await;
         assert!(result.is_ok());
         assert_eq!(
@@ -285,7 +284,7 @@ mod tests {
 
         let block = Box::new(Block::new(HashDigest::new(b""), 1, vec![], &ed25519_key));
 
-        let result = blockchain.update_block_from_peers(block).await;
+        let result = blockchain.update_block(block).await;
         assert!(result.is_ok());
 
         remove_tmp_dir(tmp_dir);

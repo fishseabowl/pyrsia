@@ -108,14 +108,14 @@ impl BlockchainService {
     }
 
     /// Add payload to blockchain. It will be called by other services (e.g. transparent logging service)
-    pub async fn add_payload(&mut self, payload: Vec<u8>) -> Result<(), BlockchainError> {
-        self.blockchain
-            .add_block(payload, &identity::Keypair::Ed25519(self.keypair.clone()))
+    pub async fn add_payload(&mut self, payload: Vec<u8>) -> Result<Ordinal, BlockchainError> {
+        let oridnal = self.blockchain
+            .create_new_block(payload, &identity::Keypair::Ed25519(self.keypair.clone()))
             .await?;
 
         self.broadcast_blockchain(Box::new(self.blockchain.last_block().unwrap()))
             .await?;
-        Ok(())
+        Ok(oridnal)
     }
 
     /// Notify other nodes to add a new block.
@@ -144,7 +144,7 @@ impl BlockchainService {
         Ok(())
     }
 
-    async fn query_blockchain_ordinal(
+    pub async fn query_blockchain_ordinal(
         &mut self,
         other_peer_id: &PeerId,
     ) -> Result<Ordinal, BlockchainError> {
@@ -170,7 +170,7 @@ impl BlockchainService {
         Ok(ordinal)
     }
 
-    async fn pull_block_from_other_nodes(
+    pub async fn pull_blocks_from_peer(
         &mut self,
         other_peer_id: &PeerId,
         start: Ordinal,
@@ -193,9 +193,9 @@ impl BlockchainService {
 
         let blocks = deserialize(
             &self
-                .p2p_client
-                .request_blockchain(other_peer_id, buf.clone())
-                .await?,
+            .p2p_client
+            .request_blockchain(other_peer_id, buf.clone())
+            .await?,
         )
         .unwrap();
 
@@ -203,38 +203,38 @@ impl BlockchainService {
     }
 
     /// Add a new block to local blockchain.
-    pub async fn add_block(
+    pub async fn add_block_local(
         &mut self,
         ordinal: Ordinal,
         block: Box<Block>,
-    ) -> Result<(), BlockchainError> {
+    ) -> Result<Ordinal, BlockchainError> {
         let last_block = self.blockchain.last_block();
 
         match last_block {
             None => {
                 if ordinal == 0 {
-                    self.blockchain.update_block_from_peers(block).await
+                    self.blockchain.update_block(block).await
                 } else {
-                    Ok(())
+                    Err(BlockchainError::InvalidBlockchainOrdinal(ordinal))
                 }
             }
 
             Some(last_block) => {
                 let expected = last_block.header.ordinal + 1;
                 match ordinal.cmp(&expected) {
-                    Ordering::Greater => Err(BlockchainError::LaggingBlockchainData),
+                    Ordering::Greater => Err(BlockchainError::InvalidBlockchainOrdinal(ordinal)),
                     Ordering::Less => {
                         warn!("Blockchain received a duplicate block!");
-                        Ok(())
+                        Ok(ordinal)
                     }
-                    Ordering::Equal => self.blockchain.update_block_from_peers(block).await,
+                    Ordering::Equal => self.blockchain.update_block(block).await,
                 }
             }
         }
     }
 
     /// Retrieve Blocks form start ordinal number to end ordinal number (including end ordinal number)
-    pub async fn pull_blocks(
+    pub async fn fetch_blocks(
         &self,
         start: Ordinal,
         end: Ordinal,
@@ -246,7 +246,7 @@ impl BlockchainService {
         self.blockchain.last_block()
     }
 
-    pub async fn init_pull_from_others(
+    pub async fn init_pull_from_peer(
         &mut self,
         other_peer_id: &PeerId,
     ) -> Result<Ordinal, BlockchainError> {
@@ -254,13 +254,13 @@ impl BlockchainService {
         let ordinal = self.query_blockchain_ordinal(other_peer_id).await?;
 
         for block in self
-            .pull_block_from_other_nodes(other_peer_id, 0, ordinal)
+            .pull_blocks_from_peer(other_peer_id, 0, ordinal)
             .await?
             .iter()
         {
             let ordinal = block.header.ordinal;
             let block = block.clone();
-            self.add_block(ordinal, Box::new(block)).await?;
+            self.add_block_local(ordinal, Box::new(block)).await?;
         }
 
         Ok(ordinal)
@@ -343,7 +343,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
-    async fn test_add_block() {
+    async fn test_add_block_local() {
         let tmp_dir = test_util::tests::setup();
 
         let mut blockchain_service = create_blockchain_service(&tmp_dir).await.0;
@@ -357,7 +357,7 @@ mod tests {
             &blockchain_service.keypair,
         );
         blockchain_service
-            .add_block(1, Box::new(block.clone()))
+            .add_block_local(1, Box::new(block.clone()))
             .await
             .expect("Block should have been added.");
 
@@ -366,7 +366,7 @@ mod tests {
 
         // Ordinal is not next, return error.
         assert!(blockchain_service
-            .add_block(3, Box::new(block.clone()))
+            .add_block_local(3, Box::new(block.clone()))
             .await
             .is_err());
 
@@ -396,11 +396,11 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
-    async fn test_pull_blocks() {
+    async fn test_pull_blocks_from_peer() {
         let tmp_dir = test_util::tests::setup();
 
         let blockchain_service = create_blockchain_service(&tmp_dir).await.0;
-        assert_eq!(1, blockchain_service.pull_blocks(0, 0).await.unwrap().len());
+        assert_eq!(1, blockchain_service.fetch_blocks(0, 0).await.unwrap().len());
 
         test_util::tests::teardown(tmp_dir);
     }
@@ -420,7 +420,7 @@ mod tests {
             &blockchain_service.keypair,
         );
         let _ = blockchain_service
-            .add_block(1, Box::new(block.clone()))
+            .add_block_local(1, Box::new(block.clone()))
             .await;
 
         assert_eq!(
@@ -453,7 +453,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
-    async fn test_init_pull_from_others_with_invalid_other_peer() {
+    async fn test_init_pull_from_peer_with_invalid_other_peer() {
         let tmp_dir = test_util::tests::setup();
 
         let mut blockchain_service = create_blockchain_service(&tmp_dir).await.0;
@@ -461,7 +461,7 @@ mod tests {
         let other_peer_id = Keypair::generate_ed25519().public().to_peer_id();
 
         assert!(blockchain_service
-            .init_pull_from_others(&other_peer_id)
+            .init_pull_from_peer(&other_peer_id)
             .await
             .is_err());
 

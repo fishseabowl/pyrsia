@@ -943,6 +943,7 @@ mod tests {
         let log =
             test_util::tests::create_transparency_log_service_default_blockchain_handler(&tmp_dir);
 
+
         let result = log
             .add_artifact(AddArtifactRequest {
                 package_type: PackageType::Docker,
@@ -980,10 +981,10 @@ mod tests {
         tokio::spawn(async move {
             loop {
                 match build_event_receiver.recv().await {
-                    Some(BlockchainEvent::AddBlock { sender, .. }) => {
-                        let _ = sender.send(Ok(()));
+                    Some(BlockchainEvent::CreateBlock { sender, .. }) => {
+                        let _ = sender.send(Ok(0));
                     }
-                    _ => panic!("BlockchainEvent must match BlockchainEvent::AddBlock"),
+                    _ => panic!("BlockchainEvent must match BlockchainEvent::CreateBlock"),
                 }
             }
         });
