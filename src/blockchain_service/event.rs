@@ -100,7 +100,7 @@ impl BlockchainEventClient {
         receiver.await.map_err(BlockchainError::ChannelClosed)?
     }
 
-    /// Query the last block ordinal from the remote node
+    /// Query the last block ordinal from the local node
     pub async fn query_block_ordinal_local(&self) -> Result<Ordinal, BlockchainError> {
         let (sender, receiver) = oneshot::channel();
         self.blockchain_event_sender

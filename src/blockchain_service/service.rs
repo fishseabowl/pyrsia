@@ -127,8 +127,8 @@ impl BlockchainService {
         let block = *block;
         let mut buf: Vec<u8> = vec![];
         buf.push(cmd);
-        buf.append(&mut serialize(&block_ordinal).unwrap());
-        buf.append(&mut serialize(&block).unwrap());
+        buf.append(&mut serialize(&block_ordinal)?);
+        buf.append(&mut serialize(&block)?);
 
         log::debug!(
             "Blockchain sends broadcast block #{}: {:?}",
@@ -165,8 +165,7 @@ impl BlockchainService {
                 .p2p_client
                 .request_blockchain(other_peer_id, buf.clone())
                 .await?,
-        )
-        .unwrap();
+        )?;
 
         Ok(ordinal)
     }
@@ -189,8 +188,9 @@ impl BlockchainService {
         );
 
         buf.push(cmd);
-        buf.append(&mut serialize(&start).unwrap());
-        buf.append(&mut serialize(&end).unwrap());
+        buf.append(&mut serialize(&start)?);
+        buf.append(&mut serialize(&end)?);
+        buf.append(&mut serialize(other_peer_id)?);
 
         let blocks = deserialize(
             &self

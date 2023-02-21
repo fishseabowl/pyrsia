@@ -488,11 +488,11 @@ async fn pull_block_from_other_nodes(
     debug!("Blockchain start pulling blocks from other peers");
 
     let ordinal = blockchain_event_client
-        .pull_blocks_from_peer(other_peer_id)
+        .handle_query_block_ordinal(other_peer_id)
         .await?;
 
     for block in blockchain_event_client
-        .pull_blocks_local(1, ordinal)
+        .hanlde_pull_blocks(other_peer_id, 1, ordinal)
         .await?
     {
         let payloads = block.fetch_payload();
