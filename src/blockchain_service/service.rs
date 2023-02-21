@@ -109,7 +109,8 @@ impl BlockchainService {
 
     /// Add payload to blockchain. It will be called by other services (e.g. transparent logging service)
     pub async fn add_payload(&mut self, payload: Vec<u8>) -> Result<Ordinal, BlockchainError> {
-        let oridnal = self.blockchain
+        let oridnal = self
+            .blockchain
             .create_new_block(payload, &identity::Keypair::Ed25519(self.keypair.clone()))
             .await?;
 
@@ -193,9 +194,9 @@ impl BlockchainService {
 
         let blocks = deserialize(
             &self
-            .p2p_client
-            .request_blockchain(other_peer_id, buf.clone())
-            .await?,
+                .p2p_client
+                .request_blockchain(other_peer_id, buf.clone())
+                .await?,
         )
         .unwrap();
 
@@ -387,7 +388,10 @@ mod tests {
         let tmp_dir = test_util::tests::setup();
 
         let blockchain_service = create_blockchain_service(&tmp_dir).await.0;
-        assert_eq!(1, blockchain_service.fetch_blocks(0, 0).await.unwrap().len());
+        assert_eq!(
+            1,
+            blockchain_service.fetch_blocks(0, 0).await.unwrap().len()
+        );
 
         test_util::tests::teardown(tmp_dir);
     }

@@ -943,7 +943,6 @@ mod tests {
         let log =
             test_util::tests::create_transparency_log_service_default_blockchain_handler(&tmp_dir);
 
-
         let result = log
             .add_artifact(AddArtifactRequest {
                 package_type: PackageType::Docker,
