@@ -73,7 +73,7 @@ impl BlockchainEventClient {
     }
 
     /// Create a new block on the local node
-    pub async fn add_block(&self, payload: Vec<u8>) -> Result<Ordinal, BlockchainError> {
+    pub async fn create_block(&self, payload: Vec<u8>) -> Result<Ordinal, BlockchainError> {
         let (sender, receiver) = oneshot::channel();
         self.blockchain_event_sender
             .send(BlockchainEvent::CreateBlock { payload, sender })
@@ -252,7 +252,7 @@ impl BlockchainEventLoop {
                 let payloads = block.fetch_payload();
                 if let Err(e) = self
                     .blockchain_service
-                    .add_block_local(block_ordinal, block)
+                    .update_block_local(block_ordinal, block)
                     .await
                 {
                     sender.send(Err(e.into())).unwrap_or_else(|e| {

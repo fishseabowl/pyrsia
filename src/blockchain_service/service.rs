@@ -203,8 +203,8 @@ impl BlockchainService {
         Ok(blocks)
     }
 
-    /// Add a new block to local blockchain.
-    pub async fn add_block_local(
+    /// Update a new block to local blockchain.
+    pub async fn update_block_local(
         &mut self,
         ordinal: Ordinal,
         block: Box<Block>,
@@ -261,7 +261,7 @@ impl BlockchainService {
         {
             let ordinal = block.header.ordinal;
             let block = block.clone();
-            self.add_block_local(ordinal, Box::new(block)).await?;
+            self.update_block_local(ordinal, Box::new(block)).await?;
         }
 
         Ok(ordinal)
@@ -345,7 +345,7 @@ mod tests {
             &blockchain_service.keypair,
         );
         blockchain_service
-            .add_block_local(1, Box::new(block.clone()))
+            .update_block_local(1, Box::new(block.clone()))
             .await
             .expect("Block should have been added.");
 
@@ -354,7 +354,7 @@ mod tests {
 
         // Ordinal is not next, return error.
         assert!(blockchain_service
-            .add_block_local(3, Box::new(block.clone()))
+            .update_block_local(3, Box::new(block.clone()))
             .await
             .is_err());
 
@@ -411,7 +411,7 @@ mod tests {
             &blockchain_service.keypair,
         );
         let _ = blockchain_service
-            .add_block_local(1, Box::new(block.clone()))
+            .update_block_local(1, Box::new(block.clone()))
             .await;
 
         assert_eq!(

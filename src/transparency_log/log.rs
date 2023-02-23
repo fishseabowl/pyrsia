@@ -205,7 +205,7 @@ impl TransparencyLogService {
 
         let payload = serde_json::to_string(&transparency_log)?;
         self.blockchain_event_client
-            .add_block(payload.into_bytes())
+            .create_block(payload.into_bytes())
             .await?;
 
         self.write_transparency_log(&transparency_log)
@@ -246,7 +246,7 @@ impl TransparencyLogService {
     ) -> Result<(), TransparencyLogError> {
         for payload in payloads {
             self.blockchain_event_client
-                .add_block(payload.into_bytes())
+                .create_block(payload.into_bytes())
                 .await?;
         }
         Ok(())

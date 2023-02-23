@@ -89,7 +89,7 @@ impl Blockchain {
         }
     }
 
-    /// Create a new block after receiving payload and keypair
+    /// Create a new block
     pub async fn create_new_block(
         &mut self,
         payload: Vec<u8>,
@@ -123,12 +123,12 @@ impl Blockchain {
         self.commit_block(block.clone()).await
     }
 
-    /// Update block after receiving the new block from other peers
+    /// Update local blockchain
     pub async fn update_block(&mut self, block: Box<Block>) -> Result<Ordinal, BlockchainError> {
         self.commit_block(*block).await
     }
 
-    /// Commit block and notify block listeners
+    /// Commit the block to local storage
     async fn commit_block(&mut self, block: Block) -> Result<Ordinal, BlockchainError> {
         Self::save_block(&mut self.chain, block, self.blockchain_path.as_path()).await
     }
